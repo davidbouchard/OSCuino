@@ -133,12 +133,12 @@ int SLIPEncodedSerial::peek(){
  void SLIPEncodedSerial::write(uint8_t b){
 	if(b == eot){ 
 		serial->write(slipesc);
-		return serial->write(slipescend); 
+		serial->write(slipescend); 
 	} else if(b==slipesc) {  
 		serial->write(slipesc);
-		return serial->write(slipescesc); 
+		serial->write(slipescesc); 
 	} else {
-		return serial->write(b);
+		serial->write(b);
 	}	
 }
 
@@ -161,7 +161,8 @@ size_t SLIPEncodedSerial::write(uint8_t b){
 void SLIPEncodedSerial::begin(unsigned long baudrate){
 	serial->begin(baudrate);
 }
-
+	//SLIP specific method which begins a transmitted packet
+void SLIPEncodedSerial::beginPacket() {}
 //signify the end of the packet with two EOT's
 void SLIPEncodedSerial::endPacket(){
 	serial->write(eot);

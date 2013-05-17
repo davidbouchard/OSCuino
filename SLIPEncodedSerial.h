@@ -31,8 +31,9 @@ public:
 	
 	//same as Serial.begin
 	void begin(unsigned long);
-	
-	//SLIP specific method which ends a transmittedpacket
+	//SLIP specific method which begins a transmitted packet
+	void beginPacket();
+	//SLIP specific method which ends a transmitted packet
 	void endPacket();
 	// SLIP specific method which indicates that an EOT was received 
 	bool endofPacket();
