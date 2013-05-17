@@ -28,7 +28,7 @@
 
 #include "OSCData.h"
 #include <Print.h>
-
+#include "OSCBoards.h"
 
 class OSCMessage
 {
