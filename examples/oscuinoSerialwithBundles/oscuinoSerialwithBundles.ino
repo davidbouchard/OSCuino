@@ -1,25 +1,40 @@
 
+// This experimental version is for Arduino Due
+
 #include <OSCBundle.h>
-#include <stdlib.h>
-
-
-#if defined(CORE_TEENSY)|| defined(__AVR_ATmega32U4__)
-#include <SLIPEncodedUSBSerial.h>
-#else
-#include <SLIPEncodedSerial.h>
+#if !defined(__SAM3X8E__)
+#include <Tone.h>
 #endif
 
 
+#if defined(CORE_TEENSY)|| defined(__AVR_ATmega32U4__)  ||defined(__SAM3X8E__)
+#include <SLIPEncodedUSBSerial.h>
+#if defined(__SAM3X8E__)
+SLIPEncodedUSBSerial SLIPSerial(SerialUSB);
+#else
+SLIPEncodedUSBSerial SLIPSerial(Serial);
+#endif
+#else
+#include <SLIPEncodedSerial.h>
+SLIPEncodedSerial SLIPSerial(Serial);  // Potentially Serial1, Serial2 etc.
+#endif
+
 OSCBundle bundleOUT;
 
-
-
 //converts the pin to an osc address
-const char * numToOSCAddress( int pin){
-  static char s[10] ="/";
-   
-   itoa(pin, s+1, 10);
-   return s;
+ char * numToOSCAddress( int pin){
+  static char s[10];
+   int i = 9;
+	s[i--]= '\0';
+	do
+{
+		s[i] = "0123456789"[pin % 10];
+                --i;
+                pin /= 10;
+}
+        while(pin && i);
+s[i] = '/';
+return &s[i];
 }
 
 /**
@@ -43,7 +58,7 @@ const char * numToOSCAddress( int pin){
 
 void routeDigital(OSCMessage &msg, int addrOffset ){
   //match input or output
-  for(byte pin = 0; pin < NUM_DIGITAL_PINS; pin++){
+  for(byte pin = 0; pin < (OSC_TOTAL_PINS-OSC_TOTAL_ANALOG_PINS);pin++){
     //match against the pin number strings
     int pinMatched = msg.match(numToOSCAddress(pin), addrOffset);
     if(pinMatched){
@@ -85,8 +100,8 @@ void routeDigital(OSCMessage &msg, int addrOffset ){
  * 
  * format:
  * /a/(pin)
- *   /u = analogRead with pullup
- *   (no value) = analogRead without pullup
+ *   /u = (int)analogRead with pullup
+ *   (no value) = (int)analogRead without pullup
  *   (digital value) = digital write on that pin
  *    (float value) = analogWrite on that pin
  * 
@@ -94,11 +109,12 @@ void routeDigital(OSCMessage &msg, int addrOffset ){
 
 void routeAnalog(OSCMessage &msg, int addrOffset ){
   //iterate through all the analog pins
-  for(byte pin = 0; pin < NUM_ANALOG_INPUTS; pin++){
+  for(byte pin = 0; pin < OSC_TOTAL_ANALOG_PINS; pin++){
     //match against the pin number strings
     int pinMatched = msg.match(numToOSCAddress(pin), addrOffset);
     if(pinMatched){
-      //if it has an int, then it's a digital write
+#if !defined(__SAM3X8E__)
+//if it has an int, then it's a digital write
       if (msg.isInt(0)){
         pinMode(analogInputToDigitalPin(pin), OUTPUT);
         digitalWrite(analogInputToDigitalPin(pin), (msg.getInt(0) > 0)? HIGH: LOW);
@@ -107,7 +123,9 @@ void routeAnalog(OSCMessage &msg, int addrOffset ){
         analogWrite(pin, (int)(msg.getFloat(0)*255.0f));
       }
       //with a pullup?
-      else if (msg.fullMatch("/u", pinMatched+addrOffset)){
+      else 
+      
+      if (msg.fullMatch("/u", pinMatched+addrOffset)){
         //set the pullup
 
         pinMode(analogInputToDigitalPin(pin), INPUT_PULLUP);
@@ -118,25 +136,28 @@ void routeAnalog(OSCMessage &msg, int addrOffset ){
         strcat(outputAddress, numToOSCAddress(pin));
         strcat(outputAddress,"/u");
         //do the analog read and send the results
-        bundleOUT.add(outputAddress).add(analogRead(pin));       
+        bundleOUT.add(outputAddress).add((int)analogRead(pin));       
       } //else without a pullup   
       else {
         //set the pinmode
         // This fails on Arduino 1.04 on Leanardo, I added this to fix it: #define analogInputToDigitalPin(p)  (p+18)
 
         pinMode(analogInputToDigitalPin(pin), INPUT);
+#endif
         //setup the output address which should be /a/(pin)
         char outputAddress[6];
         strcpy(outputAddress, "/a");
         strcat(outputAddress, numToOSCAddress(pin));
         //do the analog read and send the results
-        bundleOUT.add(outputAddress).add(analogRead(pin));         
+        bundleOUT.add(outputAddress).add((int)analogRead(pin));         
+#if !defined(__SAM3X8E__)
       }
-    }
+#endif
+}
   }
 }
 
-
+#if !defined(__SAM3X8E__)
 /**
  * TONE
  * 
@@ -144,8 +165,8 @@ void routeAnalog(OSCMessage &msg, int addrOffset ){
  * 
  * format:
  * /a/(pin)
- *   /u = analogRead with pullup
- *   (no value) = analogRead without pullup
+ *   /u = (int)analogRead with pullup
+ *   (no value) = (int)analogRead without pullup
  *   (digital value) = digital write on that pin
  *    (float value) = analogWrite on that pin
  * 
@@ -153,7 +174,7 @@ void routeAnalog(OSCMessage &msg, int addrOffset ){
 
 void routeTone(OSCMessage &msg, int addrOffset ){
   //iterate through all the analog pins
-  for(byte pin = 0; pin < NUM_DIGITAL_PINS; pin++){
+  for(byte pin = 0; pin < OSC_TOTAL_PINS; pin++){
     //match against the pin number strings
     int pinMatched = msg.match(numToOSCAddress(pin), addrOffset);
     if(pinMatched){
@@ -177,6 +198,8 @@ void routeTone(OSCMessage &msg, int addrOffset ){
     }
   }
 }
+#endif
+
 #if defined (__MK20DX128__)
 #define TOUCHSUPPORT
 #endif
@@ -202,7 +225,7 @@ const char *name = numToOSCAddress(cpins[i]);
 }
 #endif
 
-#if !defined(__AVR_ATmega8__) && !defined(__MK20DX128__)
+#if !defined(__AVR_ATmega8__) && !defined(__MK20DX128__) && !defined(__SAM3X8E__)
 
 // power supply measurement on some Arduinos 
 float getSupplyVoltage(){
@@ -234,7 +257,7 @@ float getSupplyVoltage(){
 // temperature
 float getTemperature(){	
 	int result;
-#if defined(__AVR_ATmega32U4__) ||    (!defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega8__) && !defined(__AVR_AT90USB646__) && !defined(__AVR_AT90USB1286__) &&! defined(__AVR_ATmega2560__))
+#if defined(__AVR_ATmega32U4__) ||    (!defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega8__) && !defined(__AVR_AT90USB646__) && !defined(__AVR_AT90USB1286__) &&! defined(__AVR_ATmega2560__) && !defined(__SAM3X8E__))
 	
 #if defined(__AVR_ATmega32U4__)
 	ADMUX =  _BV(REFS1) | _BV(REFS0) | _BV(MUX2) | _BV(MUX1) | _BV(MUX0);
@@ -262,14 +285,14 @@ float getTemperature()
 {
         analogReference(INTERNAL);
         delay(1);
-    int val = analogRead(38); // seems to be flakey
+    int val = (int)analogRead(38); // seems to be flakey
   analogReference(DEFAULT);
 
   return val; //need to compute something here to get to degrees C
 }
 float getSupplyVoltage()
 {
-  int val = analogRead(39); 
+  int val = (int)analogRead(39); 
   return val>0? (1.20f*1023/val):0.0f; 
 }
 
@@ -289,28 +312,29 @@ float getSupplyVoltage()
 // 
 void routeSystem(OSCMessage &msg, int addrOffset ){
   if (msg.fullMatch("/t", addrOffset)){
-    bundleOUT.add("/s/t").add(getTemperature());
+ //   bundleOUT.add("/s/t").add(getTemperature());
   }
   if (msg.fullMatch("/s", addrOffset)){
-    bundleOUT.add("/s/s").add(getSupplyVoltage());
+ //   bundleOUT.add("/s/s").add(getSupplyVoltage());
   }
   if (msg.fullMatch("/m", addrOffset)){
     bundleOUT.add("/s/m").add((int32_t)micros());
   }
   if (msg.fullMatch("/d", addrOffset)){
-    bundleOUT.add("/s/d").add(NUM_DIGITAL_PINS);
+    bundleOUT.add("/s/d").add((int)OSC_TOTAL_PINS);
   }
   if (msg.fullMatch("/a", addrOffset)){
-    bundleOUT.add("/s/a").add(NUM_ANALOG_INPUTS);
+    bundleOUT.add("/s/a").add((int)OSC_TOTAL_ANALOG_PINS);
   }
   if (msg.fullMatch("/l", addrOffset)){
  // I had to add this to make it work on Leonardo: static const int LEDBUILTIN=13;
 
-    if (msg.isInt(0)){
-             pinMode(LED_BUILTIN, OUTPUT);
-      int i = msg.getInt(0);
-        pinMode(LED_BUILTIN, OUTPUT);
-        digitalWrite(LED_BUILTIN, (i > 0)? HIGH: LOW);
+    if (msg.isInt(0))
+    {
+        pinMode(OSC_LED_PIN, OUTPUT);
+        int i = msg.getInt(0);
+        pinMode(OSC_LED_PIN, OUTPUT);
+        digitalWrite(OSC_LED_PIN, (i > 0)? HIGH: LOW);
         bundleOUT.add("/s/l").add(i);
       }
   }
@@ -321,18 +345,12 @@ void routeSystem(OSCMessage &msg, int addrOffset ){
  * 
  * setup and loop, bundle receiving/sending, initial routing
  */
- 
-#if defined(CORE_TEENSY)|| defined(__AVR_ATmega32U4__)
-SLIPEncodedUSBSerial SLIPSerial(Serial);
-#else
-SLIPEncodedSerial SLIPSerial(Serial);
-#endif
 
 
 void setup() {
-    SLIPSerial.begin(9600);   // set this as high as you can reliably run on your platform
+  SLIPSerial.begin(9600);
     while(!Serial)
-      ;   // Leonardo bug
+          ;   // Leonardo bug
 
 }
 
@@ -353,7 +371,9 @@ if(!bundleIN.hasError())
     bundleIN.route("/s", routeSystem);
     bundleIN.route("/a", routeAnalog);
     bundleIN.route("/d", routeDigital);
-    bundleIN.route("/tone", routeTone);
+#if !defined(__SAM3X8E__)
+  bundleIN.route("/tone", routeTone);
+#endif
 #ifdef TOUCHSUPPORT
     bundleIN.route("/c", routeTouch);
 #endif
