@@ -235,8 +235,10 @@ writePort(port, value, bitmask):  Write an 8 bit port.
 #define OSC_PIN_TO_ANALOG(p)        (((p)<=23)?(p)-14:(p)-24)
 #define OSC_PIN_TO_PWM(p)           OSC_PIN_TO_DIGITAL(p)
 #define OSC_PIN_TO_SERVO(p)         (p)
-// Leonardo
+
+// Leonardo   how do we make a special case of Esplora?
 #elif defined(__AVR_ATmega32U4__)
+#if F_CPU==16000000
 #define OSC_TOTAL_ANALOG_PINS 12
 #define OSC_TOTAL_PINS 30 // 14 digital + 12 analog + 4 SPI (D14-D17 on ISP header)
 #define OSC_LED_PIN 13
@@ -249,6 +251,21 @@ writePort(port, value, bitmask):  Write an 8 bit port.
 #define OSC_PIN_TO_ANALOG(p) (p) - 18
 #define OSC_PIN_TO_PWM(p) OSC_PIN_TO_DIGITAL(p)
 #define OSC_PIN_TO_SERVO(p) (p) 
+#else
+//Lilypad USB and Flora (8Mhz)
+#define OSC_TOTAL_ANALOG_PINS 12
+#define OSC_TOTAL_PINS 30 // 14 digital + 12 analog + 4 SPI (D14-D17 on ISP header)
+#define OSC_LED_PIN 13   // its 7 on Flora but how do we detect this?
+#define OSC_IS_PIN_DIGITAL(p) ((p) >= 0 && (p) < OSC_TOTAL_PINS)
+#define OSC_IS_PIN_ANALOG(p) ((p) >= 18 && (p) < OSC_TOTAL_PINS)
+#define OSC_IS_PIN_PWM(p) ((p) == 3 || (p) == 5 || (p) == 6 || (p) == 9 || (p) == 10 || (p) == 11 || (p) == 13)
+#define OSC_IS_PIN_SERVO(p) ((p) >= 0 && (p) < OSC_MAX_SERVOS)
+#define OSC_IS_PIN_I2C(p) ((p) == 2 || (p) == 3)
+#define OSC_PIN_TO_DIGITAL(p) (p)
+#define OSC_PIN_TO_ANALOG(p) (p) - 18
+#define OSC_PIN_TO_PWM(p) OSC_PIN_TO_DIGITAL(p)
+#define OSC_PIN_TO_SERVO(p) (p)
+#endif
 
 // Sanguino
 #elif defined(__AVR_ATmega644P__) || defined(__AVR_ATmega644__)
@@ -291,8 +308,23 @@ writePort(port, value, bitmask):  Write an 8 bit port.
 #define OSC_IS_PIN_PWM(p)           digitalPinHasPWM(p)
 #define OSC_IS_PIN_SERVO(p)         ((p) >= 2 && (p) - 2 < OSC_MAX_SERVOS)
 #define OSC_IS_PIN_I2C(p)           ((p) == 20 || (p) == 21) // 70 71
+// has a second I2C somewhere
 #define OSC_PIN_TO_DIGITAL(p)       (p)
 #define OSC_PIN_TO_ANALOG(p)        ((p) - 54)
+#define OSC_PIN_TO_PWM(p)           OSC_PIN_TO_DIGITAL(p)
+#define OSC_PIN_TO_SERVO(p)         ((p) - 2)
+// Wiring 1281 and 2561 probably unnecessary due to earlier entry
+#elif defined(__AVR_ATmega1281__) || defined(__AVR_ATmega2561__)
+#define OSC_TOTAL_ANALOG_PINS       8
+#define OSC_TOTAL_PINS              54 
+#define OSC_LED_PIN       48
+#define OSC_IS_PIN_DIGITAL(p)       ((p) >= 0 && (p) < OSC_TOTAL_PINS)
+#define OSC_IS_PIN_ANALOG(p)        ((p) >= 40 && (p) < 48)
+#define OSC_IS_PIN_PWM(p)           ((p)==53)|| ((p)>=35 &&(p)<=37) || ((p)>=28 && (p)<=31) )
+#define OSC_IS_PIN_SERVO(p)         ((p) >= 2 && (p) - 2 < OSC_MAX_SERVOS)
+#define OSC_IS_PIN_I2C(p)           ((p) == 20 || (p) == 21)
+#define OSC_PIN_TO_DIGITAL(p)       (p)
+#define OSC_PIN_TO_ANALOG(p)        ((p) - 40)
 #define OSC_PIN_TO_PWM(p)           OSC_PIN_TO_DIGITAL(p)
 #define OSC_PIN_TO_SERVO(p)         ((p) - 2)
 // anything else
