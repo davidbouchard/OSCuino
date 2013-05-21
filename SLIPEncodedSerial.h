@@ -9,7 +9,11 @@ Extends the Serial class to encode SLIP over serial
 #else
 #include "WProgram.h"
 #endif
+#include <stdint.h>
+#include <inttypes.h>
+#include <string.h>
 #include <Stream.h>
+
 #include <HardwareSerial.h>
 
 

@@ -9,21 +9,26 @@ Extends the Serial class to encode SLIP over serial
 #else
 #include "WProgram.h"
 #endif
+#include <stdint.h>
+#include <inttypes.h>
+#include <string.h>
 #include <Stream.h>
 
 #if defined(CORE_TEENSY)|| defined(__AVR_ATmega32U4__) || defined(__SAM3X8E__)
-	//import the serial object
+//import the serial object
 #if defined (__MK20DX128__)
 #include <usb_serial.h>
 #elif defined(CORE_TEENSY)
 #include <usb_api.h>
 #elif defined(__SAM3X8E__)
 #include <USB/USBAPI.h>
+#elif defined(BOARD_maple_mini)
+#include <usb_serial.h>
 #else
 #include "Platform.h"
 #include "USBAPI.h"
 #include <avr/wdt.h>
-    // leonardo
+// leonardo
 
 #endif
 
@@ -33,22 +38,26 @@ class SLIPEncodedUSBSerial: public Stream{
 	
 private:
 	enum erstate {CHAR, FIRSTEOT, SECONDEOT, SLIPESC } rstate;
-
+    // not sure about the second defined here
 #if !defined(CORE_TEENSY) || defined(__SAM3X8E__)
-Serial_
-#else	
+    Serial_
+#elif defined(BOARD_maple_mini)
+    USBSerial
+#else
 	usb_serial_class
 #endif
-							* serial;
+    * serial;
 	
 public:
 	
 //different constructor for teensies
 	SLIPEncodedUSBSerial(
-#if !defined(CORE_TEENSY)
-Serial_
+#if !defined(CORE_TEENSY) || defined(__SAM3X8E__)
+                         Serial_
+#elif defined(BOARD_maple_mini)
+                         USBSerial
 #else
-	usb_serial_class
+                         usb_serial_class
 #endif
 						 &		);
 	
