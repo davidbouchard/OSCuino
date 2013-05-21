@@ -3,7 +3,7 @@
 #ifndef Oscuino_Boards_h
 #define Oscuino_Boards_h
 
-#include <inttypes.h>
+//#include <inttypes.h>
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"	// for digitalRead, digitalWrite, etc
@@ -327,6 +327,28 @@ writePort(port, value, bitmask):  Write an 8 bit port.
 #define OSC_PIN_TO_ANALOG(p)        ((p) - 40)
 #define OSC_PIN_TO_PWM(p)           OSC_PIN_TO_DIGITAL(p)
 #define OSC_PIN_TO_SERVO(p)         ((p) - 2)
+
+#elif BOARD_maple
+#include "maple.h"
+#elif defined(BOARD_maple_native)
+#include "maple_native.h"
+#elif defined(BOARD_maple_mini)
+#include "maple_mini.h"
+#define OSC_TOTAL_ANALOG_PINS       BOARD_NR_ADC_PINS
+#define OSC_TOTAL_PINS              BOARD_NR_GPIO_PINS
+#define OSC_LED_PIN       13
+#define OSC_IS_PIN_DIGITAL(p)       ((p) >= 0 && (p) < OSC_TOTAL_PINS)
+#define OSC_IS_PIN_ANALOG(p)        ((p) >= 3 && (p) < (3+OSC_TOTAL_PINS))
+#define OSC_PIN_TO_DIGITAL(p)       (p)
+
+#elif defined(BOARD_maple_RET6)
+/*
+ * **NOT** MAPLE REV6.  This the **Maple RET6 EDITION**, which is a
+ * Maple with an STM32F103RET6 (...RET6) instead of an STM32F103RBT6
+ * (...RBT6) on it.  Maple Rev6 (as of March 2011) DOES NOT EXIST.
+ */
+#include "maple_RET6.h"
+
 // anything else
 #else
 #error "Please edit OSCBoards.h with a hardware abstraction for this board"
@@ -363,8 +385,8 @@ static inline unsigned char readPort(byte port, byte bitmask)
  * writePort() - Write an 8 bit port, only touch pins specified by a bitmask
  *============================================================================*/
 
-static inline unsigned char writePort(byte, byte, byte) __attribute__((always_inline, unused));
-static inline unsigned char writePort(byte port, byte value, byte bitmask)
+static inline void writePort(byte, byte, byte) __attribute__((always_inline, unused));
+static inline void writePort(byte port, byte value, byte bitmask)
 {
 #if defined(OSC_ARDUINO_PINOUT_OPTIMIZE)
 	if (port == 0) {

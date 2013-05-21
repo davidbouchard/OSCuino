@@ -25,12 +25,17 @@
 
 #ifndef OSCDATA_h
 #define OSCDATA_h
-#include <Arduino.h>
-#include <stdlib.h> 
+#if ARDUINO >= 100
+#include "Arduino.h"
+#else
+#include "WProgram.h"
+#endif
+
+
 #include <stdint.h>
 #include <inttypes.h>
 #include <string.h>
-
+#include <stdlib.h>
 
 //ERRORS/////////////////////////////////////////////////
 typedef enum { OSC_OK = 0,
@@ -119,5 +124,4 @@ static inline T BigEndian(const T& x)
     return ret;
 }
 
-
- #endif
+#endif
