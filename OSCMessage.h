@@ -27,8 +27,8 @@
 #define OSCMESSAGE_h
 
 #include "OSCData.h"
-#include <Print.h>
 
+#include <Print.h>
 
 class OSCMessage
 {
@@ -123,6 +123,8 @@ public:
 
 	//empties all of the data
 	void empty();
+	
+	void reset();
 
 /*=============================================================================
 	SETTING  DATA

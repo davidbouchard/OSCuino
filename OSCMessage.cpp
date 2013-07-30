@@ -26,6 +26,8 @@
 #include "OSCMessage.h"
 #include "OSCMatch.h"
 
+extern void oscEvent(OSCMessage&);
+
 /*=============================================================================
 	CONSTRUCTORS / DESTRUCTOR
 =============================================================================*/
@@ -90,6 +92,15 @@ void OSCMessage::empty(){
     free(data);
     data = NULL;
     dataCount = 0;
+}
+
+// ****** NEW ADDITION *** davidb
+void OSCMessage::reset() {
+	free(address);
+	empty();
+	free(incomingBuffer);
+	setupMessage();
+	error = INVALID_OSC;
 }
 
 //COPY
