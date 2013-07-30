@@ -1,5 +1,7 @@
 #include <OSC.h>
 
+void oscEvent(OSCMessage &);
+
 //=============================================================================
 // OSC_Serial Wrapper
 //=============================================================================
@@ -8,52 +10,46 @@ OSC_Serial::OSC_Serial(HardwareSerial &s) {
 	slip = new SLIPEncodedSerial(s);	 
 }
 
+// Non-blocking.
+// Doesn't work yet... endofPacket() never returns true.
+/*
 void OSC_Serial::listen() {
-
 	int size;
-	while ((size = slip->available()) > 0) {
-		char c = slip->read();
-		slip->print(c);
-		msgIN.fill(c);
+	while ((size = slip->available()) > 0) {	
+			msgIN.fill(slip->read());		
+
 		if (slip->endofPacket()) {
 			if (!msgIN.hasError()) {
 				//oscEvent(msgIN);
-				char buf[20];
-   				msgIN.getAddress(buf, 0);
-    			slip->println(buf);
+				slip->println("MSG IN");
+//				char buf[20];
+//   			msgIN.getAddress(buf, 0);
+//    			slip->println(buf);
 				msgIN.reset();
 			}
 			else {
-				//slip->println("MSG ERROR");	
+				slip->println("MSG ERROR");	
 			}
 		}		
 	}	
-	
-	/*
-	// THIS WORKS 
+}
+*/
+
+// Blocking Version
+void OSC_Serial::listen() {	
 	int size;
 	while(!slip->endofPacket()) {
 		if( (size = slip->available()) > 0) {
 		   while(size--) msgIN.fill(slip->read());
 		}  
 	}
-	
-	if(!msgIN.hasError()) {
-		slip->println("MSG IN");
 		
-		char buf[20];
-   		msgIN.getAddress(buf, 0);
-    	slip->println(buf);
-
+	if(!msgIN.hasError()) {
+		oscEvent(msgIN);
 	}
 
-	else {
-		slip->println("MSG ERROR");
-	}
-	
 	// get the OSC message ready for the next one
     msgIN.reset();
-    */
 }
 
 void OSC_Serial::send(OSCMessage &msg) {
@@ -66,7 +62,8 @@ void OSC_Serial::send(OSCMessage &msg) {
 // OSC_UDP Wrapper
 //=============================================================================
 
-
+// TODO: write similar wrapper class using the UDP interface 
+// waiting to solve the blocking kink on the Serial one first
 
 //=============================================================================
 // Base OSC interface 

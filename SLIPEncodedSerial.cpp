@@ -33,9 +33,10 @@ bool SLIPEncodedSerial::endofPacket()
 		}
 		rstate = CHAR;
 		return true;
-	}
+	}	
 	return false;
 }
+
 int SLIPEncodedSerial::available(){
 back:
 	int cnt = serial->available();
@@ -51,7 +52,7 @@ back:
 			serial->read(); // throw it on the floor
 			goto back;
 		}
-		else if( c==eot)
+		else if(c==eot)
 		{
 			rstate = FIRSTEOT;
 			serial->read(); // throw it on the floor
@@ -74,8 +75,7 @@ back:
 		rstate = CHAR;
 	}
 	
-	return 0;
-		
+	return 0;		
 }
 
 //reads a byte from the buffer
