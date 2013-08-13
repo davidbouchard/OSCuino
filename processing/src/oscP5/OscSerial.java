@@ -1,3 +1,37 @@
+/** 
+ * A library adding OSC over Serial support for the Processing 
+ * environment.
+ * 
+ * This library is built on Andreas Schlegel's OscP5. 
+ * http://www.sojamo.de/libraries/oscP5/
+ * 
+ * SLIP code based on:
+ * https://gist.github.com/sepal/1512585
+ * 
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General
+ * Public License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ * Boston, MA  02111-1307  USA
+ */
+
+
+
+// required to be able to use some protected members of the original
+// library
+package oscP5;
+
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.*;
 import java.util.*;
@@ -7,7 +41,7 @@ import processing.core.*;
 import processing.serial.*;
 import oscP5.*;
 
-class OscSerial {
+public class OscSerial {
 
 	// SLIP Serial chars
 	final int END = 0300;
@@ -20,21 +54,36 @@ class OscSerial {
 
 	protected Serial serial;
 	protected HashMap<String, ArrayList<OscPlug>> _myOscPlugMap = new HashMap<String, ArrayList<OscPlug>>();
-    private OscProperties _myOscProperties;
 
-	
+	// from OscProperties. Bypassing that object since it mostly has to do with
+	// net config stuff
+	protected final Vector<OscEventListener> listeners;
+
+	private Class<?> _myParentClass;
+	private Method _myEventMethod;
+	private Class<?> _myEventClass = OscMessage.class;
+	private boolean isEventMethod;
+
+	protected final Object parent;
+
 	// --------------------------------------------------------------------------
-	OscSerial(PApplet parent, Serial serial) {
+	public OscSerial(PApplet parent, Serial serial) {
+		this.parent = parent;
 		this.serial = serial;
 		serialBuffer = new ArrayList();
+		listeners = new Vector<OscEventListener>();
+		isEventMethod = checkEventMethod();
 		// register pre() event? for automatic listen
+		parent.registerMethod("post", this);
 	}
-
+	
+	public void post() {
+		listen();
+	}
+	
 	// --------------------------------------------------------------------------
 	// Listen to data on the Serial port and assemble packets
-	// There doesn't seem to be a way to hook into the serialEvent() callback
-	// directly
-	// so this method will need to be placed inside serialEvent()
+	// this is called automatically by the post() event method 
 	protected void listen() {
 		try {
 			while (serial.available() > 0) {
@@ -43,15 +92,14 @@ class OscSerial {
 				case END:
 					if (count > 0) {
 						count = 0;
-						process(); // <-- process the packet
+						oscPacketReady(); // <-- process the packet
 						serial.clear();
 						serialBuffer.clear();
 						return;
 					}
 					break;
 				case ESC:
-					buffer = serial.read(); // <-- immediately read the next
-											// char
+					buffer = serial.read(); // <-- immediately read the next char
 					switch (buffer) {
 					case ESC_END:
 						buffer = END;
@@ -66,7 +114,6 @@ class OscSerial {
 				}
 			}
 		}
-
 		catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -79,9 +126,10 @@ class OscSerial {
 
 	// --------------------------------------------------------------------------
 	// TODO: needs to handle Bundles Vs Message
-	// right now, assumes we are always getting Messages
+	// right now, this assumes we are always getting Messages
+	// that's OK because on the Arduino side there is only the Message option 
 
-	protected void process() {
+	protected void oscPacketReady() {
 		String address = "";
 		int pos = 0;
 		int b = (Integer) serialBuffer.get(pos++);
@@ -90,6 +138,7 @@ class OscSerial {
 			address += (char) b;
 			b = (Integer) serialBuffer.get(pos++);
 		}
+		
 		// Skip address zeros and the comma for the parameters
 		pos += 4 - ((address.length()) % 4);
 		b = (Integer) serialBuffer.get(pos++);
@@ -99,8 +148,8 @@ class OscSerial {
 		}
 
 		// println(address);
-
 		// println(pos);
+		
 		// Skip parameter zeros
 		pos--;
 		pos += 4 - ((argumentTypes.size() + 1) % 4);
@@ -145,14 +194,12 @@ class OscSerial {
 				break;
 			}
 		}
-
+		
+		// pass the message along 
 		callMethod(oscMsg);
-		// notifyAll();
 
-		// Trigger an oscEvent function.
-		// in the Library version, this needs to be done like in ControlP5 by
-		// registering with the parent applet
-		// oscEvent(oscMsg);
+		// From the net version; not required, I think..
+		// notifyAll();
 	}
 
 	// --------------------------------------------------------------------------
@@ -193,7 +240,22 @@ class OscSerial {
 		serial.write(END);
 	}
 
-	// The following functions are from the OscP5 class
+	// *************************************************************************
+	// The following functions are from the OscP5 class, with some modifications
+	// *************************************************************************
+
+	public void addListener(OscEventListener theListener) {
+		listeners().add(theListener);
+	}
+
+	public void removeListener(OscEventListener theListener) {
+		listeners().remove(theListener);
+	}
+
+	public Vector<OscEventListener> listeners() {
+		return listeners();
+	}
+
 	/**
 	 * osc messages can be automatically forwarded to a specific method of an
 	 * object. the plug method can be used to by-pass parsing raw osc messages -
@@ -331,17 +393,10 @@ class OscSerial {
 		Logger.printDebug("OscP5.callMethod ", "" + isEventMethod);
 		if (isEventMethod) {
 			try {
-				if (isOscIn) {
-					invoke(parent, _myEventMethod, new Object[] { new OscIn(
-							theOscMessage) });
-					Logger.printDebug("OscP5.callMethod ", "invoking OscIn "
-							+ isEventMethod);
-				} else {
-					invoke(parent, _myEventMethod,
-							new Object[] { theOscMessage });
-					Logger.printDebug("OscP5.callMethod ",
-							"invoking OscMessage " + isEventMethod);
-				}
+
+				invoke(parent, _myEventMethod, new Object[] { theOscMessage });
+				Logger.printDebug("OscP5.callMethod ", "invoking OscMessage "
+						+ isEventMethod);
 			} catch (ClassCastException e) {
 				Logger.printError("OscHandler.callMethod",
 						" ClassCastException." + e);
@@ -368,6 +423,48 @@ class OscSerial {
 							+ "method in charge : " + theMethod.getName()
 							+ "  " + e);
 		}
+	}
+
+	private boolean checkEventMethod() {
+		_myParentClass = parent.getClass();
+		try {
+			Method[] myMethods = _myParentClass.getDeclaredMethods();
+			for (int i = 0; i < myMethods.length; i++) {
+				if (myMethods[i].getName().indexOf("oscEvent") != -1) {
+					Class<?>[] myClasses = myMethods[i].getParameterTypes();
+					if (myClasses.length == 1) {
+						_myEventClass = myClasses[0];
+						break;
+					}
+				}
+			}
+
+		} catch (Throwable e) {
+			System.err.println(e);
+		}
+
+		String tMethod = "oscEvent";
+		if (tMethod != null) {
+			try {
+				Class<?>[] tClass = { _myEventClass };
+				_myEventMethod = _myParentClass.getDeclaredMethod(tMethod,
+						tClass);
+				_myEventMethod.setAccessible(true);
+				return true;
+			} catch (SecurityException e1) {
+				// e1.printStackTrace();
+				Logger.printWarning(
+						"OscP5.plug",
+						"### security issues in OscP5.checkEventMethod(). (this occures when running in applet mode)");
+			} catch (NoSuchMethodException e1) {
+			}
+		}
+		// online fix, since an applet throws a security exception when calling
+		// setAccessible(true);
+		if (_myEventMethod != null) {
+			return true;
+		}
+		return false;
 	}
 
 }
