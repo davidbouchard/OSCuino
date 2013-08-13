@@ -1,4 +1,5 @@
 import oscP5.*;
+import netP5.Logger;
 import processing.serial.*;
 
 Serial port;
@@ -7,15 +8,15 @@ OscSerial osc;
 
 void setup() {
   println(Serial.list());
-  port = new Serial(this, Serial.list()[0], 9600);
+  port = new Serial(this, Serial.list()[4], 9600);
   osc = new OscSerial(this, port);
-  
-  osc.plug(this,"plugTest", "/sensor");
+ 
+  osc.plug(this,"plugTest", "/test");  
 }
 
 void draw() {
 }
-
+ 
 void mousePressed() {
   OscMessage msg = new OscMessage("/hi");
   msg.add(frameCount);
@@ -23,9 +24,9 @@ void mousePressed() {
 }
 
 void plugTest(int value) {
-  println("Plugged from /sensor: " + value);
+  println("Plugged from /test: " + value);
 }
 
 void oscEvent(OscMessage theMessage) {
-  println("Message: " + theMessage);  
+  println("Message: " + theMessage + ", " + theMessage.isPlugged());  
 }

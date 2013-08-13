@@ -73,11 +73,11 @@ public class OscSerial {
 		serialBuffer = new ArrayList();
 		listeners = new Vector<OscEventListener>();
 		isEventMethod = checkEventMethod();
-		// register pre() event? for automatic listen
-		parent.registerMethod("post", this);
+		// register pre() event for automatic listen on the serial port
+		parent.registerMethod("pre", this);
 	}
 	
-	public void post() {
+	public void pre() {
 		listen();
 	}
 	
@@ -130,6 +130,7 @@ public class OscSerial {
 	// that's OK because on the Arduino side there is only the Message option 
 
 	protected void oscPacketReady() {
+
 		String address = "";
 		int pos = 0;
 		int b = (Integer) serialBuffer.get(pos++);
@@ -170,20 +171,20 @@ public class OscSerial {
 				break;
 			case 'f':
 				byte[] byteArr = new byte[4];
-				byteArr[0] = (Byte) serialBuffer.get(pos++);
-				byteArr[1] = (Byte) serialBuffer.get(pos++);
-				byteArr[2] = (Byte) serialBuffer.get(pos++);
-				byteArr[3] = (Byte) serialBuffer.get(pos++);
+				byteArr[0] = PApplet.parseByte((Integer) serialBuffer.get(pos++));
+	    	    byteArr[1] = PApplet.parseByte((Integer) serialBuffer.get(pos++));
+    	    	byteArr[2] = PApplet.parseByte((Integer) serialBuffer.get(pos++));
+		        byteArr[3] = PApplet.parseByte((Integer) serialBuffer.get(pos++));
 				float f = arr2float(byteArr, 0);
 				oscMsg.add(f);
 				break;
 			case 's':
 				String str = "";
-				char c = (Character) serialBuffer.get(pos++);
-				while (c != 0x00) {
-					str += c;
-					c = (Character) serialBuffer.get(pos++);
-				}
+        		char c = PApplet.parseChar((Integer)serialBuffer.get(pos++));
+		        while (c != 0x00) {
+        		  str += c;
+			      c = PApplet.parseChar((Integer)serialBuffer.get(pos++));
+		        }
 
 				int zeros = 4 - (str.length() % 4);
 				// Skip zeros
@@ -197,9 +198,6 @@ public class OscSerial {
 		
 		// pass the message along 
 		callMethod(oscMsg);
-
-		// From the net version; not required, I think..
-		// notifyAll();
 	}
 
 	// --------------------------------------------------------------------------
@@ -245,15 +243,15 @@ public class OscSerial {
 	// *************************************************************************
 
 	public void addListener(OscEventListener theListener) {
-		listeners().add(theListener);
+		listeners.add(theListener);
 	}
 
 	public void removeListener(OscEventListener theListener) {
-		listeners().remove(theListener);
+		listeners.remove(theListener);
 	}
 
 	public Vector<OscEventListener> listeners() {
-		return listeners();
+		return listeners;
 	}
 
 	/**
@@ -332,23 +330,13 @@ public class OscSerial {
 	}
 
 	private void callMethod(final OscMessage theOscMessage) {
-
-		// forward the message to all OscEventListeners
+		//forward the message to all OscEventListeners
 		for (int i = listeners().size() - 1; i >= 0; i--) {
 			((OscEventListener) listeners().get(i)).oscEvent(theOscMessage);
 		}
 
 		/* check if the arguments can be forwarded as array */
-
-		if (theOscMessage.isArray) {
-			// for (int i = 0; i < _myOscPlugList.size(); i++) {
-			// OscPlug myPlug = ((OscPlug) _myOscPlugList.get(i));
-			// if (myPlug.isArray && myPlug.checkMethod(theOscMessage, true)) {
-			// invoke(myPlug.getObject(), myPlug.getMethod(),
-			// theOscMessage.argsAsArray());
-			// }
-			// }
-
+		if (theOscMessage.isArray) {			
 			if (_myOscPlugMap.containsKey(theOscMessage.addrPattern())) {
 				ArrayList<OscPlug> myOscPlugList = _myOscPlugMap
 						.get(theOscMessage.addrPattern());
@@ -366,16 +354,7 @@ public class OscSerial {
 			}
 
 		}
-		/* check if there is a plug method for the current message */
-		// for (int i = 0; i < _myOscPlugList.size(); i++) {
-		// OscPlug myPlug = ((OscPlug) _myOscPlugList.get(i));
-		// if (!myPlug.isArray && myPlug.checkMethod(theOscMessage, false)) {
-		// theOscMessage.isPlugged = true;
-		// invoke(myPlug.getObject(), myPlug.getMethod(), theOscMessage
-		// .arguments());
-		// }
-		// }
-
+		
 		if (_myOscPlugMap.containsKey(theOscMessage.addrPattern())) {
 			ArrayList<OscPlug> myOscPlugList = _myOscPlugMap.get(theOscMessage
 					.addrPattern());
@@ -393,7 +372,6 @@ public class OscSerial {
 		Logger.printDebug("OscP5.callMethod ", "" + isEventMethod);
 		if (isEventMethod) {
 			try {
-
 				invoke(parent, _myEventMethod, new Object[] { theOscMessage });
 				Logger.printDebug("OscP5.callMethod ", "invoking OscMessage "
 						+ isEventMethod);
