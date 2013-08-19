@@ -1,6 +1,6 @@
 #include <OSC.h>
 
-OSC osc;
+Osc osc;
 
 void setup() {
   Serial.begin(9600);
@@ -9,13 +9,17 @@ void setup() {
 
 void loop() {
   delay(100);
-
-  OSCMessage msg("/test");
+  OscMessage msg("/test");
   msg.add(0); 
   osc.send(msg);   
 }
 
-void oscEvent(OSCMessage &m) {
+void oscEvent(OscMessage &m) {
   // receiver 
+  m.plug("/steve", fromSteve); 
+}
+
+void fromSteve(OscMessage &m) {
+  int value = m.getInt(0); 
 }
 

@@ -1,12 +1,12 @@
 #include <OSC.h>
 
-void oscEvent(OSCMessage &);
+void oscEvent(OscMessage &);
 
 //=============================================================================
 // OSC_Serial Wrapper
 //=============================================================================
 
-OSC_Serial::OSC_Serial(HardwareSerial &s) {
+OscSerial::OscSerial(HardwareSerial &s) {
 	slip = new SLIPEncodedSerial(s);	 
 }
 
@@ -36,7 +36,7 @@ void OSC_Serial::listen() {
 */
 
 // Blocking Version
-void OSC_Serial::listen() {	
+void OscSerial::listen() {	
 	int size;
 	while(!slip->endofPacket()) {
 		if( (size = slip->available()) > 0) {
@@ -52,7 +52,7 @@ void OSC_Serial::listen() {
     msgIN.reset();
 }
 
-void OSC_Serial::send(OSCMessage &msg) {
+void OscSerial::send(OscMessage &msg) {
 	msg.send(*slip);
 	slip->endPacket();
 	msg.empty();
@@ -69,15 +69,15 @@ void OSC_Serial::send(OSCMessage &msg) {
 // Base OSC interface 
 //=============================================================================
 
-void OSC::begin(HardwareSerial &s) {
-	wrapper = new OSC_Serial(s);
+void Osc::begin(HardwareSerial &s) {
+	wrapper = new OscSerial(s);
 }
 
-void OSC::send(OSCMessage &msg) {
+void Osc::send(OscMessage &msg) {
 	wrapper->send(msg);
 }
 
 
-void OSC::listen() {
+void Osc::listen() {
 	wrapper->listen();
 }

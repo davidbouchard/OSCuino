@@ -7,51 +7,51 @@
 #include <HardwareSerial.h>
 
 //=============================================================================
-class OSC_Wrapper {
+class OscWrapper {
 	
 protected:	
-	OSCMessage msgIN;
+	OscMessage msgIN;
 
 public:
-	virtual void send(OSCMessage &) = 0;
+	virtual void send(OscMessage &) = 0;
 	virtual void listen() = 0;
 };
 
 //=============================================================================
-class OSC_Serial : public OSC_Wrapper {	
+class OscSerial : public OscWrapper {	
 
 private:
 	SLIPEncodedSerial *slip;
 
 public:	
-	OSC_Serial(HardwareSerial &);
-	void send(OSCMessage &);
+	OscSerial(HardwareSerial &);
+	void send(OscMessage &);
 	void listen();
 };
 
 //=============================================================================
-class OSC_UDP : public OSC_Wrapper {
+class OscUDP : public OscWrapper {
 
 private:
 	UDP *udp;	
 
 public:
-	OSC_UDP(UDP &);		
-	void send(OSCMessage &);
+	OscUDP(UDP &);		
+	void send(OscMessage &);
 	void listen();
 };
 
 //=============================================================================
-class OSC {
+class Osc {
 	
 private:
-	OSC_Wrapper *wrapper;
+	OscWrapper *wrapper;
 	
 public:
 	void begin(HardwareSerial &);
 	void begin(UDP &);
 	void listen();
-	void send(OSCMessage &);
+	void send(OscMessage &);
 };
 
 #endif

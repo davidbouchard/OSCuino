@@ -26,21 +26,21 @@
 #include "OSCMessage.h"
 #include "OSCMatch.h"
 
-extern void oscEvent(OSCMessage&);
+extern void oscEvent(OscMessage&);
 
 /*=============================================================================
 	CONSTRUCTORS / DESTRUCTOR
 =============================================================================*/
 
 //constructor with address
-OSCMessage::OSCMessage(const char * _address){
+OscMessage::OscMessage(const char * _address){
 	setupMessage();
     setAddress(_address);
 }
 
 //constructor with nothing
 //just a placeholder since the message is invalid
-OSCMessage::OSCMessage(){
+OscMessage::OscMessage(){
     setupMessage();
     error = INVALID_OSC;
 }
@@ -54,7 +54,7 @@ OSCMessage::OSCMessage(const char * _address, char * types, ... ){
  */
 
 //sets up a new message
-void OSCMessage::setupMessage(){
+void OscMessage::setupMessage(){
 	address = NULL;
 	//setup the attributes
 	dataCount = 0;
@@ -69,7 +69,7 @@ void OSCMessage::setupMessage(){
 }
 
 //DESTRUCTOR
-OSCMessage::~OSCMessage(){
+OscMessage::~OscMessage(){
 	//free everything that needs to be freed
     //free the address
 	free(address);
@@ -79,7 +79,7 @@ OSCMessage::~OSCMessage(){
     free(incomingBuffer);
 }
 
-void OSCMessage::empty(){
+void OscMessage::empty(){
     error = OSC_OK;
     //free each of hte data in the array
     for (int i = 0; i < dataCount; i++){
@@ -95,7 +95,7 @@ void OSCMessage::empty(){
 }
 
 // ****** NEW ADDITION *** davidb
-void OSCMessage::reset() {
+void OscMessage::reset() {
 	free(address);
 	empty();
 	free(incomingBuffer);
@@ -104,7 +104,7 @@ void OSCMessage::reset() {
 }
 
 //COPY
-OSCMessage::OSCMessage(OSCMessage * msg){
+OscMessage::OscMessage(OscMessage * msg){
 	//start with a message with the same address
     setupMessage();
     setAddress(msg->address);
@@ -118,7 +118,7 @@ OSCMessage::OSCMessage(OSCMessage * msg){
 	GETTING DATA
 =============================================================================*/
 
-OSCData * OSCMessage::getOSCData(int position){
+OSCData * OscMessage::getOSCData(int position){
 	if (position < dataCount){
 		OSCData * datum = data[position];
 		return datum;
@@ -128,7 +128,7 @@ OSCData * OSCMessage::getOSCData(int position){
 	}
 }
 
-int32_t OSCMessage::getInt(int position){
+int32_t OscMessage::getInt(int position){
 	OSCData * datum = getOSCData(position);
 	if (!hasError()){
 		return datum->getInt();
@@ -137,7 +137,7 @@ int32_t OSCMessage::getInt(int position){
     }
 }
 
-float OSCMessage::getFloat(int position){
+float OscMessage::getFloat(int position){
 	OSCData * datum = getOSCData(position);
 	if (!hasError()){
 		return datum->getFloat();
@@ -146,7 +146,7 @@ float OSCMessage::getFloat(int position){
     }
 }
 
-double OSCMessage::getDouble(int position){
+double OscMessage::getDouble(int position){
 	OSCData * datum = getOSCData(position);
 	if (!hasError()){
 		return datum->getDouble();
@@ -155,7 +155,7 @@ double OSCMessage::getDouble(int position){
     }
 }
 
-int OSCMessage::getString(int position, char * buffer, int bufferSize){
+int OscMessage::getString(int position, char * buffer, int bufferSize){
 	OSCData * datum = getOSCData(position);
 	if (!hasError()){
         //the number of bytes to copy is the smaller between the buffer size and the datum's byte length
@@ -166,7 +166,7 @@ int OSCMessage::getString(int position, char * buffer, int bufferSize){
     }
 }
 
-int OSCMessage::getBlob(int position, uint8_t * buffer, int bufferSize){
+int OscMessage::getBlob(int position, uint8_t * buffer, int bufferSize){
 	OSCData * datum = getOSCData(position);
 	if (!hasError()){
         //the number of bytes to copy is the smaller between the buffer size and the datum's byte length
@@ -177,7 +177,7 @@ int OSCMessage::getBlob(int position, uint8_t * buffer, int bufferSize){
     }
 }
 
-char OSCMessage::getType(int position){
+char OscMessage::getType(int position){
 	OSCData * datum = getOSCData(position);
 	if (!hasError()){
 		return datum->type;
@@ -186,7 +186,7 @@ char OSCMessage::getType(int position){
     }
 }
 
-int OSCMessage::getDataLength(int position){
+int OscMessage::getDataLength(int position){
     OSCData * datum = getOSCData(position);
     if (!hasError()){
         return datum->bytes;
@@ -199,7 +199,7 @@ int OSCMessage::getDataLength(int position){
 	TESTING DATA
 =============================================================================*/
 
-bool OSCMessage::testType(int position, char type){
+bool OscMessage::testType(int position, char type){
 	OSCData * datum = getOSCData(position);
 	if (!hasError()){
 		return datum->type == type;
@@ -208,27 +208,27 @@ bool OSCMessage::testType(int position, char type){
 	}
 }
 
-bool OSCMessage::isInt(int position){
+bool OscMessage::isInt(int position){
 	return testType(position, 'i');
 }
 
-bool OSCMessage::isFloat(int position){
+bool OscMessage::isFloat(int position){
 	return testType(position, 'f');
 }
 
-bool OSCMessage::isBlob(int position){
+bool OscMessage::isBlob(int position){
 	return testType(position, 'b');
 }
 
-bool OSCMessage::isChar(int position){
+bool OscMessage::isChar(int position){
 	return testType(position, 'c');
 }
 
-bool OSCMessage::isString(int position){
+bool OscMessage::isString(int position){
 	return testType(position, 's');
 }
 
-bool OSCMessage::isDouble(int position){
+bool OscMessage::isDouble(int position){
 	return testType(position, 'd');
 }
 
@@ -237,7 +237,7 @@ bool OSCMessage::isDouble(int position){
 	PATTERN MATCHING
 =============================================================================*/
 
-int OSCMessage::match(const  char * pattern, int addr_offset){
+int OscMessage::match(const  char * pattern, int addr_offset){
 	int pattern_offset;
 	int address_offset;
 	int ret = osc_match(address + addr_offset, pattern, &pattern_offset, &address_offset);
@@ -251,14 +251,14 @@ int OSCMessage::match(const  char * pattern, int addr_offset){
 	}
 }
 
-bool OSCMessage::fullMatch( const char * pattern, int addr_offset){
+bool OscMessage::fullMatch( const char * pattern, int addr_offset){
 	int pattern_offset;
 	int address_offset;
 	int ret = osc_match(address + addr_offset, pattern, &address_offset, &pattern_offset);
 	return (ret==3);
 }
 
-bool OSCMessage::dispatch(const char * pattern, void (*callback)(OSCMessage &), int addr_offset){
+bool OscMessage::plug(const char * pattern, void (*callback)(OscMessage &), int addr_offset){
 	if (fullMatch(pattern, addr_offset)){
 		callback(*this);
 		return true;
@@ -267,7 +267,7 @@ bool OSCMessage::dispatch(const char * pattern, void (*callback)(OSCMessage &), 
 	}
 }
 
-bool OSCMessage::route(const char * pattern, void (*callback)(OSCMessage &, int), int initial_offset){
+bool OscMessage::route(const char * pattern, void (*callback)(OscMessage &, int), int initial_offset){
 	int match_offset = match(pattern, initial_offset);
 	if (match_offset>0){
 		callback(*this, match_offset + initial_offset);
@@ -281,17 +281,17 @@ bool OSCMessage::route(const char * pattern, void (*callback)(OSCMessage &, int)
     ADDRESS
  =============================================================================*/
 
-int OSCMessage::getAddress(char * buffer, int offset){
+int OscMessage::getAddress(char * buffer, int offset){
     strcpy(buffer, address+offset);
 	return strlen(buffer);
 }
 
-int OSCMessage::getAddress(char * buffer, int offset, int len){
+int OscMessage::getAddress(char * buffer, int offset, int len){
     strncpy(buffer, address+offset, len);
 	return strlen(buffer);
 }
 
-void OSCMessage::setAddress(const char * _address){
+void OscMessage::setAddress(const char * _address){
     //free the previous address
     free(address);
     //copy the address
@@ -309,18 +309,18 @@ void OSCMessage::setAddress(const char * _address){
 	SIZE
 =============================================================================*/
 
-int OSCMessage::padSize(int _bytes){
+int OscMessage::padSize(int _bytes){
     int space = (_bytes + 3) / 4;
     space *= 4;
 	return space - _bytes;
 }
 
 //returns the number of OSCData in the OSCMessage
-int OSCMessage::size(){
+int OscMessage::size(){
 	return dataCount;
 }
 
-int OSCMessage::bytes(){
+int OscMessage::bytes(){
     int messageSize = 0;
     //send the address
     int addrLen = strlen(address) + 1;
@@ -351,7 +351,7 @@ int OSCMessage::bytes(){
 	ERROR HANDLING
 =============================================================================*/
 
-bool OSCMessage::hasError(){
+bool OscMessage::hasError(){
     bool retError = error != OSC_OK;
     //test each of the data
     for (int i = 0; i < dataCount; i++){
@@ -361,7 +361,7 @@ bool OSCMessage::hasError(){
 	return retError;
 }
 
-OSCErrorCode OSCMessage::getError(){
+OSCErrorCode OscMessage::getError(){
     return error;
 }
 
@@ -369,7 +369,7 @@ OSCErrorCode OSCMessage::getError(){
     SENDING
  =============================================================================*/
 
-void OSCMessage::send(Print &p){
+void OscMessage::send(Print &p){
     //don't send a message with errors
     if (hasError()){
         return;
@@ -430,11 +430,11 @@ void OSCMessage::send(Print &p){
     FILLING
  =============================================================================*/
 
-void OSCMessage::fill(uint8_t incomingByte){
+void OscMessage::fill(uint8_t incomingByte){
     decode(incomingByte);
 }
 
-void OSCMessage::fill(uint8_t * incomingBytes, int length){
+void OscMessage::fill(uint8_t * incomingBytes, int length){
     while (length--){
         decode(*incomingBytes++);
     }
@@ -444,19 +444,19 @@ void OSCMessage::fill(uint8_t * incomingBytes, int length){
     DECODING
  =============================================================================*/
 
-void OSCMessage::decodeAddress(){
+void OscMessage::decodeAddress(){
     setAddress((char *) incomingBuffer);
     //change the error from invalide message
     error = OSC_OK;
     clearIncomingBuffer();
 }
 
-void OSCMessage::decodeType(uint8_t incomingByte){
+void OscMessage::decodeType(uint8_t incomingByte){
     char type = incomingByte;
     add(type);
 }
 
-void OSCMessage::decodeData(uint8_t incomingByte){
+void OscMessage::decodeData(uint8_t incomingByte){
     //get the first OSCData to re-set
     for (int i = 0; i < dataCount; i++){
         OSCData * datum = getOSCData(i);
@@ -535,7 +535,7 @@ void OSCMessage::decodeData(uint8_t incomingByte){
 }
 
 //does not validate the incoming OSC for correctness
-void OSCMessage::decode(uint8_t incomingByte){
+void OscMessage::decode(uint8_t incomingByte){
     addToIncomingBuffer(incomingByte);
     switch (decodeState){
         case STANDBY:
@@ -609,7 +609,7 @@ void OSCMessage::decode(uint8_t incomingByte){
     INCOMING BUFFER MANAGEMENT
  =============================================================================*/
 
-void OSCMessage::addToIncomingBuffer(uint8_t incomingByte){
+void OscMessage::addToIncomingBuffer(uint8_t incomingByte){
     //realloc some space for the new byte and stick it on the end
 	incomingBuffer = (uint8_t *) realloc ( incomingBuffer, incomingBufferSize + 1);
 	if (incomingBuffer != NULL){
@@ -619,7 +619,7 @@ void OSCMessage::addToIncomingBuffer(uint8_t incomingByte){
 	}
 }
 
-void OSCMessage::clearIncomingBuffer(){
+void OscMessage::clearIncomingBuffer(){
     incomingBufferSize = 0;
     free(incomingBuffer);
     incomingBuffer = NULL;
