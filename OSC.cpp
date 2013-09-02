@@ -10,32 +10,23 @@ OscSerial::OscSerial(HardwareSerial &s) {
 	slip = new SLIPEncodedSerial(s);	 
 }
 
-// Non-blocking.
-// Doesn't work yet... endofPacket() never returns true.
-/*
-void OSC_Serial::listen() {
+// Non-blocking version
+void OscSerial::listen() {
 	int size;
-	while ((size = slip->available()) > 0) {	
-			msgIN.fill(slip->read());		
-
-		if (slip->endofPacket()) {
-			if (!msgIN.hasError()) {
-				//oscEvent(msgIN);
-				slip->println("MSG IN");
-//				char buf[20];
-//   			msgIN.getAddress(buf, 0);
-//    			slip->println(buf);
-				msgIN.reset();
-			}
-			else {
-				slip->println("MSG ERROR");	
-			}
-		}		
+	if( (size = slip->available()) > 0) {
+		while(size--) msgIN.fill(slip->read());
+	}  
+	if (!slip->endofPacket()) return;
+	
+	if (!msgIN.hasError()) {
+		oscEvent(msgIN);
 	}	
+	
+	msgIN.reset();
 }
-*/
 
-// Blocking Version
+/*
+// Blocking Version -- do not use, left there for reference
 void OscSerial::listen() {	
 	int size;
 	while(!slip->endofPacket()) {
@@ -51,12 +42,14 @@ void OscSerial::listen() {
 	// get the OSC message ready for the next one
     msgIN.reset();
 }
+*/
 
 void OscSerial::send(OscMessage &msg) {
 	msg.send(*slip);
 	slip->endPacket();
 	msg.empty();
 }
+
 
 //=============================================================================
 // OSC_UDP Wrapper
