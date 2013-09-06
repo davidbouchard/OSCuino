@@ -25,6 +25,13 @@ void OscSerial::listen() {
 	msgIN.reset();
 }
 
+void OscSerial::send(OscMessage &msg) {
+	msg.send(*slip);
+	slip->endPacket();
+	msg.empty();
+}
+
+
 /*
 // Blocking Version -- do not use, left there for reference
 void OscSerial::listen() {	
@@ -44,19 +51,24 @@ void OscSerial::listen() {
 }
 */
 
-void OscSerial::send(OscMessage &msg) {
-	msg.send(*slip);
-	slip->endPacket();
-	msg.empty();
-}
-
 
 //=============================================================================
 // OSC_UDP Wrapper
 //=============================================================================
 
-// TODO: write similar wrapper class using the UDP interface 
-// waiting to solve the blocking kink on the Serial one first
+void Osc::OscUDP(UDP &u) {
+	// save a handle to the UDP object
+	udp = &u;
+}
+
+void Osc::OscUDP listen() {
+	// TOOD: code to build an OSC packet object from UDP reads
+}
+
+void Osc::OscUDP send(OscMessage &msg) { 
+	// TODO 
+}
+
 
 //=============================================================================
 // Base OSC interface 
@@ -64,6 +76,10 @@ void OscSerial::send(OscMessage &msg) {
 
 void Osc::begin(HardwareSerial &s) {
 	wrapper = new OscSerial(s);
+}
+
+void Osc::begin(UDP &u) {
+	wrapper = new OscUDP(u);
 }
 
 void Osc::send(OscMessage &msg) {
