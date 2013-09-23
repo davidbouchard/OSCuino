@@ -1,11 +1,17 @@
-#include <OSC.h>
 
-Osc osc;
+// MESSAGE PROTOCOL OBJECT
+#include <OscSerial.h>
+
+// tile support libraries
+#include <EthernetUdp.h>
+#include <SPI.h>  
+
+OscSerial oscSerial;
 long timer;
 
 void setup() {
   Serial.begin(9600);
-  osc.begin(Serial); 
+  oscSerial.begin(Serial); 
   pinMode(13, OUTPUT);
 }
 
@@ -14,14 +20,15 @@ void loop() {
   // avoid using delay() since it just blocks everything  
   long now = millis();
   if (now-timer > 100) {
-    OscMessage msg("/hello");
+    
+    OscMessage msg("/helloFromArduino");
     msg.add(0); // <-- this could be any data 
-    osc.send(msg);       
+    oscSerial.send(msg);       
     timer = now;
   }
   
   // important! 
-  osc.listen();
+  oscSerial.listen();
   
 }
 
