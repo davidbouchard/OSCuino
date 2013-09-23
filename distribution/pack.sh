@@ -1,4 +1,5 @@
 #!/bin/sh
+mkdir osc
 rm -v osc/* 
 cp ../*.cpp osc/
 cp ../*.h osc/
