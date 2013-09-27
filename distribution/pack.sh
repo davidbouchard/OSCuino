@@ -3,6 +3,7 @@ mkdir osc
 rm -v osc/* 
 cp ../*.cpp osc/
 cp ../*.h osc/
+cp ../*.c osc/
 cp ../README osc/
 cp ../keywords.txt osc/
 cp -r ../examples osc/
