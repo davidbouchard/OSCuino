@@ -6,10 +6,6 @@
 #include "SLIPEncodedSerial.h"
 #include <HardwareSerial.h>
 
-
-#include "support.h"
-
-
 //=============================================================================
 class OscSerial  {	
 	
