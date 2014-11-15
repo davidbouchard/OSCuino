@@ -229,7 +229,7 @@ public class OscSerial {
 				break;
 			case (byte) ESC:
 				serial.write(ESC);
-				serial.write(ESC_END);
+				serial.write(ESC_ESC);
 				break;
 			default:
 				serial.write(packet[i]);
